@@ -1,0 +1,200 @@
+---
+title: "ST 411/511 Homework 5"
+date: "Summer 2018"
+output:
+  html_notebook: default
+  word_document: default
+  pdf_document: default
+subtitle: Due on Aug 10
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  fig.path = "images6/"
+)
+```
+
+## Instructions
+
+This assignment is due by 11:59 PM, Aug 10, 2018 on Canvas.
+
+**You should submit your assignment as a readable format (word, pdf, html), but you can choose to make it however you choose. If you have knitted this file, please also include for .Rmd file. If you have not used R Markdown, please also include your code as a separate .R file.**
+
+I have still included a template .Rmd file containing the problems that you can use to fill in your solutions should you choose this format.
+
+## Problems (25 points total)
+
+```{r include=FALSE}
+# Load libraries we need for the assignment
+library(ggplot2)
+library(Sleuth3)
+```
+
+
+### Question 1
+
+The table below shows a partially completed ANOVA table. (Note: if you are looking at this in RStudio it may be helpful to knit the file to properly view the table or Preview the Notebook)
+
+| Source of Variation | Sum of Squares | Degrees of Freedom | Mean Square | F-statistic | p-value |
+|:--------------------|:---------------|:-------------------|:------------|:------------|:--------|
+| Between Groups | . | . | . | . | . |
+| Within Groups | 35088 | 24 | . | | |
+|Total | 70907 | 31 | | | |
+
+#### a) (1 point) How many groups were there? 
+
+Asnwer:
+we have given degrees of freedom for the SSW and SST. degrees of freedom for SST = $n$-1=31 and hence $n$=32, given degrees of freedom for the SSW=$n$-$I$=24; we have $n$=32 and hence $I$=8.SO we can say that we have 8 groups
+
+#### b) (4 points) Fill in the rest of the table. Values to be calculated are indicated by a "."
+
+| Source of Variation | Sum of Squares | Degrees of Freedom | Mean Square | F-statistic | p-value |
+|:--------------------|:---------------|:-------------------|:------------|:------------|:--------|
+| Between Groups | 35819 | 7 | 5117 | 3.5 | 0.0099 |
+| Within Groups | 35088 | 24 | 1462 | | |
+|Total | 70907 | 31 | | | |
+
+
+between can be find by using formula SST-SSW=SSB=70907-35088=35819.
+for degrees of freedom for the SSB = I-1=8-1=7 (I calculated in (1))
+MSB=SSB/I-1=35819/7=5117
+MSW=SSW/n-I=35088/24=1462
+
+F-state=MSB/MSW=3.5
+
+p value for the F static can be calculate by using folowing r formula and p=0.009941808
+
+```{r}
+1-pf(3.5,df1=7,df2=24)
+
+```
+
+#### c) (2 points) What would your conclusion from the one-way ANOVA analysis be? State the hypothesis you are testing and what your decision/strength of evidence are.
+Answer: We do not have enough evidence to support the null hypothesis. And hence we can say that from the 8 different group atleast one of the population group mean will be different from another. Or in other words we can say that we donot have enough evidence to say that the population mean of the eight group are same.
+
+### Question 2 (Modified from *Sleuth* 5.25)
+
+The data file `ex0525` contains annual incomes in 2005 of a random sample of 2584 Americans who were selected for the National Longitudinal Survey of Youth in 1979 and who had paying jobs in 2005. The data set also includes a code for the number of years of education that each individual had completed by 2006: <12, 12, 13-15, 16, and >16. Perform an analysis of variance *by hand* to assess whether or not the population mean 2005 incomes were the same in all five education groups. Work through the following steps:
+
+#### a) (1 point) Create a side-by-side boxplot of 2005 income grouped by education category.
+
+```{r}
+data(ex0525)
+head(ex0525)
+dim(ex0525)
+
+ggplot(data = ex0525, aes(Educ, Income2005)) + 
+  geom_boxplot(fill = "yellow") + 
+  ylab("Income-2005")
+```
+
+#### b) (2 points) Find the grand mean and the mean of each of the five education groups. This is very similar to the steps to performing an analysis of variance BY HAND in Lab 5.
+
+Answer: 
+
+```{r}
+Grandmean<-mean(ex0525$Income2005)
+Grandmean
+#levels(ex0525$Educ)
+ID12<-which(ex0525$Educ=="12")
+ID1315<-which(ex0525$Educ=="13-15")
+ID16<-which(ex0525$Educ=="16")
+IDL12<-which(ex0525$Educ=="<12")
+IDG16<-which(ex0525$Educ==">16")
+groupmean<-c(mean(ex0525$Income2005[ID12]), mean(ex0525$Income2005[ID1315]),
+mean(ex0525$Income2005[ID16]), mean(ex0525$Income2005[IDL12]),
+mean(ex0525$Income2005[IDG16]))
+groupmean
+```
+
+#### c) (2 points) Find the sums of squares between and within groups.
+
+Answer:
+```{r}
+SSW<-sum((ex0525$Income2005[ID12]-groupmean[1])^2) +
+sum((ex0525$Income2005[ID1315]-groupmean[2])^2) +
+sum((ex0525$Income2005[ID16]-groupmean[3])^2) +sum((ex0525$Income2005[IDL12]-groupmean[4])^2) +
+sum((ex0525$Income2005[IDG16]-groupmean[5])^2)
+
+SSW #within
+
+SST<-sum((ex0525$Income2005 - Grandmean)^2)
+SSB<-SST-SSW
+SSB #between
+SST #total
+
+```
+
+#### d) (1 point) Find the mean squares between and within groups.
+
+```{r}
+I<-5  # groups
+n<-nrow(ex0525)
+n  #number of rows
+MSB<-SSB/(I-1)
+MSB #mean square between
+MSW<-(SSW)/(n-I)
+MSW #mean square within
+
+```
+
+#### e) (1 point) Find the $F$-statistic and $p$-value.
+
+```{r}
+F<-MSB/MSW
+F
+1-pf(F,df1=I-1,df2=n-I)
+
+
+```
+
+#### f) (2 point) State the conclusion of your test.
+
+We have F values is larger and p value is 0 and hence we donot have enough evidence to support our null hypothesis that the mean of different groups are same. Hence we reject null hypothesis.
+
+### Question 3 (Modified from *Sleuth* 5.23)
+
+**Was Tyrannosaurus Rex warm-blooded?** Several measurements of the oxygen isotopic composition of bone phosphate in each of 12 bone specimens from a single *Tyrannosaurus rex* skeleton were taken. It is known that the oxygen isotopic composition of vertebrate bone phosphate is related to the body temperature at which the bone forms. Differences in means at different bone sites would indicate nonconstant temperatures throughout the body. Minor temperature differences would be expected in warm-blooded animals. Is there evidence that the means are different for the different bones? The data are in `ex0523` in the `Sleuth3` library.
+
+#### a) (2 points) Plot the oxygen isotopic composition for each of the bones using a side-by-side boxplot. Comment on whether or not you think the population means are the same for all 12 bones based on your plot.
+```{r}
+data(ex0523)
+head(ex0523)
+ggplot(data = ex0523, aes(Bone, Oxygen)) + 
+  geom_boxplot(fill = "yellow") + 
+  ylab("Oxygen Composition")
+
+
+```
+
+Some of the means for bones are close to each other (see bone 11 and bone 7, and bone 6 and bone 9) where as others are way far from each other(see for bone4 and 12)
+#### b) (2 points) Perform an analysis of variance to test whether or not all the population mean oxygen isotopic compositions are the same in the 12 bone types. State your $p$-value and conclusion of the test. You may use the built-in ANOVA functions in R.
+
+Answer: 
+Based on the following result we can sya that we donot have enough evidence to say that the oxygen composition in the bones are same. and hence we'll reject the null hypothesis. Since $p$value  and larger F suggest that the oxygen composition for the bones are different.
+
+```{r}
+anova(lm(Oxygen ~ Bone, data=ex0523))
+
+
+```
+
+#### c) (2 points) Assess the assumption that the population variances are the same in each group by creating a diagnostic plot using the residuals. Does this assumption appear to have been met?
+```{r}
+mod <- lm(Oxygen ~ Bone, data=ex0523)
+ex0523$fitted <- mod$fitted
+ex0523$resid <- mod$resid
+ggplot(ex0523, aes(x=fitted, y=resid, color=Bone)) +
+geom_point()
+
+
+```
+from the figure above we can say the Y-axis (residue) for bone 7 is larger than other whereas all others are seems similar in variance(Y-axis spread)
+
+#### d) (3 points) Perform a Kruskal-Wallis test using the `kruskal.test()` function. What do you conclude from this test? Compare your conclusion with your result from the analysis of variance in part b).
+```{r}
+kruskal.test(Oxygen~Bone,data=ex0523)
+
+```
+
+Since both the test kruskal and the anova test the different things but small values in both the test suggest that we have at-least one Bone for which Oxygen composition is different than others and we will reject the null hypothesis.

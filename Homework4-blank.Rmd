@@ -1,0 +1,183 @@
+---
+title: "ST 411/511 Homework 4"
+output:
+  html_document:
+    df_print: paged
+  html_notebook: default
+  pdf_document: default
+date: "Winter 2018"
+subtitle: Due on August 6
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  fig.path = "images4/"
+)
+```
+
+## Instructions
+
+This assignment is due by 11:59 PM, August 6, 2018 on Canvas. **You should submit your assignment as both a .Rmd (R Markdown) file and whatever format you choose to knit from it (word, pdf, html).** To help out, I have included a template .Rmd file containing the problems that you can use to fill in your solutions.
+
+## Problems (31 points total)
+
+```{r include=FALSE}
+# Load libraries we need for the assignment
+library(ggplot2)
+library(Sleuth3)
+```
+
+
+### Question 1 (Modified from *Sleuth* 3.16)
+
+(4 points) A researcher has taken tissue cultures from 25 subjects. Each culture is divided in half, and a treatment is applied to one of the halves chosen at random. The other half is used as a control. After determining the percent change in the sizes of all culture sections, the researcher calculates the independent sample $t$-analysis. Finding that the paired $t$-analysis gives a slightly larger standard error (and gives only half the degrees of freedom), the researcher decides to use the results from the unpaired analysis. Is this legitimate? Discuss whether the $p$-value from the independent two-sample $t$-analysis will be appropriate to use to make a conclusion about the study.
+<b>Answer: I do not think that the independent two sample $t$-analysis will be appropriatte to use to make the conclusion about this study. Because we can see from the question that the two sample data will not be independent which is the very first and important assumption for the two sample $t$-test.And hence using the two sample t-test (unpaired) will notgive you legitimate solution
+</b>
+### Question 2 (Modified from *Sleuth* 3.27(a))
+
+As part of a study to investigate reproductive strategies in plants, biologists recorded the time spent at sources of pollen and the proportions of pollen removed by bumble-bee queens and honeybee workers pollinating a species of lily. These data appear in `ex0327` in the `Sleuth3` package.
+
+```{r}
+data(ex0327)
+head(ex0327)
+```
+
+#### a) (2 points) Draw side-by-side box plots of the proportion of pollen removed by queens and workers. What evidence do you see for doing a transformation? Include the plot at this point in your assignment. 
+
+```{r}
+ggplot(data = ex0327, aes(x=BeeType,y=PollenRemoved)) + geom_boxplot(fill="blue") + ylab("Pollen removed")
+
+```
+<b>The data for workers seems skewed.So to make it more symmetric we can use transformation.
+</b>
+#### b) (3 points) When the measurement is the proportion $P$ of some amount, one useful transformation is the logit: $\log[P/(1-P)]$. This is the log of the ratio of the proportion removed to the proportion not removed. Draw side-by-side box plots on this transformed data. Does this transformation seem to have helped us meet the $t$-test assumptions? Note that you can take the log of a vector `x` in R using `log(x)`. Include the plot at this point in your assignment.
+
+```{r}
+ex0327$PollenRemovedLogit <- log(ex0327$PollenRemoved/(1-ex0327$PollenRemoved))
+head(ex0327)
+ggplot(data = ex0327, aes(x=BeeType,y=PollenRemovedLogit)) + geom_boxplot(fill="blue") + ylab("Pollen removed")
+
+```
+<b>The data of worker seems better than the upper case atleast. However, median is still not in the middle.But we have smaller outliers.
+</b>
+#### c) (4 points) Test whether the distribution of proportions removed is the same or different for the two groups by using the $t$-test on the transformed data. You may use the `t.test` function. State your null and alternative hypotheses (note that you are comparing mean(logit(proportion removed)) between the two groups), and the $t$-statistic and $p$-value of your test. What do you conclude at significance level $\alpha=0.05$?
+Note - you need to remove the # before running
+```{r}
+t.test(PollenRemovedLogit ~ BeeType, data=ex0327, var.equal=TRUE )
+```
+
+We had null hypothesis as $H_0$ = $\mu_1$(log transfomed value for Queen) - $\mu_2$ (log transformed value for workers) = 0 and $H_A=\mu_1-\mu_2 \ne 0$. We got our p values for the $t$-test is 0.0003715 where as we have the $\alpha =0.05$ and hence we do not have enough evidence to accept the null hypothesis and hence we will reject it. 
+
+#### d) (2 points) Construct a 90% confidence interval for the population difference in the mean of the logit pollen removed between the two bee groups. What is one possible issue with presenting this confidence interval?
+Note - you need to remove the # before running
+```{r}
+t.test(PollenRemovedLogit ~ BeeType, data=ex0327, var.equal=TRUE , conf.level=0.90)
+```
+I can only observed that the confidence interval level of the logtransformed data is not much different than the normal data. I mean to say that Logtransformed is the only non-linear transformation that produces results that can be cleanly expressed in original data. 
+### Question 3: One Sample Tests
+
+Consider the following data ($n=18$ observations)
+
+```{r}
+data1 <- c(5.4, -13.2, -4.3, 1.3, -14.3, -12.3, -11.4, 9.1, 2.5, 
+           -6.8, 2.6, 6.2, 10.4, -17.0, -17.1, -8.0, 16.5, -15.3)
+sort(data1)
+```
+
+
+#### a) Use the sign test to test the null hypothesis that the population median is 0 ($H_0: m=0$):
+
+i) (1 point) Compute the sign test statistic $K$ by hand. Show all steps in your R code.
+Answer: for null hypothesis ($H_0: m=0$) we will check that how many of the data are greater than 0. So in our case K=8(greater than 0). we can count that by using following r code.
+
+```{r}
+k<-data1[data1>0]
+k
+length(k)
+```
+
+ii) (1 point) Compute the $z$-statistic corresponding to the value of $K$ that you obtained. Show work in your R code.
+Answer:$z$ statict can be calculate by the following formula
+$$Z=\frac{K-n/2}{\sqrt\frac{n}{4}=\frac{8-(18/2)}{(\sqrt\frac{18}{4}= -0.4714  $$
+We can also calculated the above values in R using folowing code
+```{r}
+ztat<-(8-(18/2))/sqrt(18/4)
+ztat
+
+```
+
+iii) (1 point) Find the two-sided $p$-value using the normal approximation to the null distribution of $K$.
+
+Answer: we have $p$ value formula for this as 
+$$p=2(1-pnorm(abs(z)))$$
+```{r}
+
+2*(1-pnorm(abs(ztat)))
+
+```
+
+
+#### b) Use the Wilcoxon Signed-Rank test to test that the "center" of this distribution is 0:
+
+i) (2 points) Compute the signed-rank test statistic $S$ by hand. Show all steps in your R code. 
+```{r}
+
+difference<-abs(data1-0)
+difference
+ranksofdata<-rank(difference)
+total<-sum(ranksofdata[data1>0])
+total
+```
+
+
+ii) (1 point) Compute the $z$-statistic corresponding to the value of $S$ that you obtained. Show work in your R code.
+Answer: $z$ static can be calculate by using following formula
+
+$$Z=\frac{S-\frac{n(n+1)}{4}}{\sqrt\frac{(n(n+1(2n+1))}{24}}=\frac{52-\frac{18(19)}{4}}{\sqrt{18*19*37/24}}=  $$
+
+```{r}
+zsts<-(52-((18*19)/4))/sqrt((18*19*37)/24)
+zsts
+
+```
+iii) (1 point) Find the two-sided $p$-value using the normal approximation to the null distribution of $S$.
+
+```{r}
+2*(1-pnorm(abs(zsts)))
+
+```
+
+iv) (1 point) Verify that you get the same result by using the `wilcox.test()` function in R with `exact=FALSE` and `correct=FALSE`.
+
+```{r}
+wilcox.test(data1,exact=FALSE, correct=FALSE)
+
+```
+
+#### c) (2 points) Discuss the differences between the results in parts a) and b). How would you interpret your analysis in each case?
+Answer: The Scientific questions for above two analysis were different so we will not be able to make any relations between this two analysis. 
+
+### Question 4: Two-Sample Tests
+
+Consider the guinea pig lifetime data we looked at in Homework 3 (`ex0211` in the `Sleuth3` package). Previously, we considered an equal variance two-sample $t$-test. Now we will consider some alternatives.
+
+#### a) (2 points) Perform a Wilcoxon rank-sum test to test whether the population distributions of lifetime in the Control and Bacilli groups are the same using the `wilcox.text()` function. Consider a one-sided lesser (Bacilli minus Control) alternative hypothesis. You do not need to use the continuity correction. What do you conclude at significance level $\alpha=0.01$?
+Note - you need to remove the # before running
+```{r}
+data(ex0211)
+wilcox.test(Lifetime ~ Group, data=ex0211,correct=FALSE, alternative="less" )
+```
+We have $\alpha$=0.01 and the p value we got is more than the given $\alpha$ so we will fail to reject the null hypothesis. Since the $p$ value is not in rejection region. 
+
+#### b) (2 points) Perform a Welch's two-sample $t$-test to test the null hypothesis that the population means of lifetime in the Control and Bacilli groups are the same using the `t.test()` function. Consider a one-sided lesser (Bacilli minus Control) alternative hypothesis. What do you conclude at significance level $\alpha=0.01$?
+
+Note - you need to remove the # before running
+
+```{r}
+t.test(Lifetime ~ Group, data=ex0211, alternative="less", var.equal=FALSE )
+```
+
+Since p value is very small and it falls in the rejection region and we do not have enough evidence to accept the null hypothesis and hence we will reject the null hypothesis.
+#### c) (2 points) Discuss the differences between the results in parts a) and b). How would you interpret your analysis in each case?
+Answer: In the second test i.e that is Welch two sample t-test we are answering the question about the mean that whether the mean of the data are same or not. Where as in the case I we are checking whether the the randomly selected value will be greater then or less than the randomly selected value from the second sample. 
+

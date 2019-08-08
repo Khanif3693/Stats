@@ -1,0 +1,221 @@
+---
+title: "Project_X"
+author: "Hanif Khan"
+date: "10/16/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Project X
+This is my project_X for the class ST599. This .Rmd file does all the operation required for the project_X. I have used the data from downloaded from the internete regarding uses of Application and reviews on play store. Also to find the some interesting facts about the money spend on the popular games, and other application.
+#from week3 : used dataframe
+#from week3 : used custom function
+#from week3 : used logical subsetting
+#from week3 : used lists
+#from week3 : used %in%
+
+
+Task to be done
+<b>1: Make use of data frame</b>
+<b>2: Make use of costome function</b>
+<b>3: Make use of logical subsetting or selective replacement</b>
+<b>4: Make use of list return by statstical test</b>
+<b>5: Make use of %in% operator</b>
+
+
+following code read the data from the Appstore.csv file and store it in data variable.
+
+```{r}
+
+data<-read.csv(file="Appstore.csv",header=TRUE,sep=",")
+
+```
+
+#Task 1 (use of data frame)
+Data is a data frame.
+```{r}
+
+is.data.frame(data)
+
+```
+following code does some operation to clean the data and just get the required information for this project.
+
+#Task 3
+```{r}
+n=nrow(data)
+#levels(data$prime_genre)
+GAM<-data[data$prime_genre=="Games",]
+EDU<-data[data$prime_genre=="Education",]
+NWS<-data[data$prime_genre=="News",]
+SN<-data[data$prime_genre=="Social Networking",]
+HF<-data[data$prime_genre=="Health & Fitness",]
+total<-sum(nrow(GAM),nrow(EDU),nrow(NWS),nrow(SN),nrow(HF))
+maindata<-rbind(GAM ,EDU , NWS , SN ,  HF)
+
+
+```
+
+So, After above operation, now I have about some specific type of Application data for example you can see that I have devided the raw data into the specific games, education, news etc groups by removing unnecessary data. My above code also satisfies the condition of third task.
+#Task 2 (Use of function and statistical test)
+
+Make  use of custrom function.  Following function will return the p.value for the relation between the price of the Application and their ratings. This function also satisfies the condition 4 for using the statstical test and return the list. However, I have also done the KRUSKAL test for the Task 4.
+```{r}
+
+is.data.frame(maindata)
+
+ttest_pval<-function(samp1, samp2){
+  
+  return (t.test(samp1, samp2, paired = FALSE)$p.value)
+}
+
+
+ttest_pval(maindata$price,maindata$user_rating)
+```
+
+#Task 4 (Use of statistical test)
+ Use of some statsical test and return them in List 
+
+```{r}
+kruskal.test(maindata$price ~ maindata$prime_genre, data=maindata)$p.value
+
+```
+
+
+#Task 5 (Use of %in%)
+
+The following code will put the False value for the application which are not present in the maindata but presents in the data.
+
+```{r}
+not_in_maindata<-c(data$id) %in% c(maindata$id)
+
+
+
+```
+
+
+
+#Project_X for Assignment 4
+
+
+
+1)Use of Group_by() and do() or lapply()
+2)make function which uses optional parameter
+3)re-order the level of factors either with the reorder() or factor() with the 4)levels=arguement used.
+#use gather()
+
+
+
+
+following code uses lapply(), optional parameter 
+Task_1 & Task 2
+
+The reason I have used both the task one and two is
+--> TO find the p-values for 10 random samples from the GAM data.
+You can also change the data by HF, STUD,NWS,etc
+
+
+```{r}
+
+task1<-function(optional,df1){
+first_data<-df1[sample(nrow(df1), 10), ]
+return(ttest_pval(first_data$price,first_data$user_rating))
+}
+dummyval<-as.list(seq(1,1000))
+
+pvals_task1<-lapply(dummyval,task1,GAM)
+pvals_vec<-unlist(pvals_task1)
+
+```
+
+
+
+Task_3 (Use of Factor)
+I have used factor and level them as order of games, social... as shown below. 
+```{r}
+prime_genre<-(sort(maindata$prime_genre))
+#head(prime_genre)
+prime_genre <- factor(prime_genre,, ordered = TRUE,levels = c("Games",  "Social Networking", "Health Science", "Education", "News "))
+head(prime_genre)
+head(sort(prime_genre))
+
+```
+
+
+Task 4(use of gather())
+```{r}
+install.packages("tidyverse")
+library(tidyverse)
+```
+
+```{r}
+
+maindata$rating_count_ver<-NULL
+
+```
+
+
+I have used gather to show the total rating  that is rating on current version plus the previous version.
+```{r}
+usedgather<-gather(maindata,"appversion","app_rating",7:9 )
+head(usedgather)
+```
+#Project X__ for Homework 5
+Task1: use gather or spread from the tidyr package
+Task2: use the %>% operator
+Task3:Use of If statement
+Task4: use for or while loop
+Task5: plot something using ggplot2
+
+
+
+#Task1: use gather or spread
+
+
+I believe it is same as Project X for homework4
+so here is the example
+
+
+```{r}
+install.packages("tidyverse")
+library(tidyverse)
+```
+
+```{r}
+
+maindata$rating_count_ver<-NULL
+
+```
+
+#Task 2 use of %>% 
+
+# %>% can be use as pipe. It basically give its output of right hand side to the left hand side. 
+For now I don't have idea of using it on my data but I do how it works.
+
+```{r}
+c(3,6) %>% sum %>% sqrt
+
+
+```
+
+#Task3 and Task 4: use of if statement and for loop
+
+```{r}
+fish<-read.table("http://teaching.cgrb.oregonstate.edu/stats/rprog_f18/_downloads/fish.txt", header = TRUE)
+
+for (i in 1:6){
+  if(i < 6)
+    print(fish$lake[i])
+}
+
+
+```
+
+
+#Task 5: draw cool plot
+This point graph shows that the variation of the data within in not much and hence F factor will be more since we have formula for F=MSB/MSW. (for the ANOVA test) SOURCE ST511
+```{r}
+ggplot(maindata, aes(x=maindata$prime_genre, y=maindata$price)) + geom_point()
+```

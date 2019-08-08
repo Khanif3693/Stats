@@ -1,0 +1,252 @@
+---
+title: 'ST 411/511 Totally Optional Lab: t-test Assumptions and Simulation'
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+  html_notebook: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# Load the packages we will use in this lab
+library(ggplot2)
+library(Sleuth3)
+```
+
+## Announcements
+
+We have to condence some material due, but I thought there were some interesting topics in this lab. I'll make it optional, but highly recommended that you look through it. There are some nice R tricks in here. 
+## Outline
+
+- Learn a little more R functionality
+- See how to add new variables to a data frame
+- See how to examine assumptions of the $t$-test
+- See how to do a simulation study for confidence intervals
+
+## Some additional R functionality
+
+So far, we've been dealing with existing datasets that come in the form of *data.frames* and that are available in the `Sleuth3` library. As you've seen a *data.frame* is a specific type of R object -- it's a rectangular array of data, where the rows contain observations on different subjects (or sampling units or experimental units), and the columns contain different variables that are measured and/or recorded on those subjects.
+
+Let's look at `ex0222` from the `Sleuth3` package, which contains data on the Armed Forces Qualifying Test (AFQT) score percentiles and component test scores in arithmetic reasoning, word knowledge, paragraph comprehension, and mathematical knowledge for a sample of 1,278 U.S. women and 1,306 U.S. men in 1981.
+
+Remember you can use `?` to pop up the help file for a data set or function in the help pane, which can be useful for seeing column names or function arguments. The `head()` function will print out the first 6 rows of data, which can be useful for getting a sense of the data and viewing the column names. We can look at the number of rows and columns in a data frame by using the `dim()` function, where the output is the number of rows, then the number of columns.
+
+Also remember that when you run this code chunk you have two panels that pop up below the chunk. The first is output from the `head()` command and the second is from the `dim()` command. You can click on them to view that output.
+
+```{r}
+?ex0222
+head(ex0222)
+dim(ex0222)
+```
+
+What is the dimension of `ex0222`? It has 2585 rows (or observations) and 6 columns (or variables). 
+
+
+### Boolean expressions
+
+We've looked a little bit at subsetting by pulling out specific observations: for example, expressions of the form `data$variable1[data$variable2=="value"]`. Let's see a few more examples of this to understand how the code works.
+
+A Boolean expression is just one that returns a value of TRUE or FALSE.  To illustrate, I'm just going to take a random sample of the *Gender* variable in `ex0222` and then perform some Boolean expressions using it. [Note: I am just going to work with a small random sample so that you can see the results all on one screen.]
+
+The `table()` function will summarize the counts of male and female in our sample.
+
+```{r}
+# get a random sample of 20 genders
+gender.samp <- sample(ex0222$Gender, size=20)
+table(gender.samp)
+```
+
+Remember that your *gender.samp* will be different from mine and from others' -- that's randomness for you -- since we have not set a seed. You can still take a look at Boolean expressions. Try these:
+
+```{r}
+# identify which values are female
+gender.samp == "female"
+gender.samp != "male"
+```
+
+The two commands above return exactly the same results. The `== "female"` expression is read `equal to "female",` and the `!= "male"` expression is read `not equal to "male".` Furthermore, we can use these Boolean expressions to subset entire *data.frames*. In the next chunk of R code, I'll create two subsets of the *ex022* data, one for males and one for females.
+
+```{r}
+males <- ex0222[ex0222$Gender == "male",]
+females <- ex0222[ex0222$Gender == "female",]
+
+# check the dimensions of these two data.frames:
+dim(males)
+dim(females)
+```
+
+As expected, the *males* data has 1306 rows and the *females* data has 1278 rows. Both datasets have 6 columns, because I didn't specify any subset of columns (no numbers of expression after the comma).
+
+There are other Boolean expressions you can use:
+
+ -- '<=' is "less than or equal to"
+ -- '<'  is "less than"
+ -- '>'  is "greater than"
+ -- '>=' is "greater than or equal to"
+ 
+### Transformation and adding new variables to a data frame
+
+You can add new variables to a *data.frame* in a few different ways. I'll show you a really straightforward way to do this. For those who want to learn another way, you can check out the *mutute* function in the `tidyverse` package.  Here's a simple way to create a new variable. 
+
+I'll use the cloud seeding case study data (case study 1 from Chapter 3, `case0301`) as an example, since the authors of *The Statistical Sleuth* suggest that we examine the rainfall data on the log scale. First, let's create side-by-side boxplots of the rainfall data on the original scale of measurement (acre-feet).
+
+```{r}
+head(case0301)
+ggplot(data = case0301, aes(x = Treatment, y = Rainfall)) + 
+  geom_boxplot(fill = "orange") + 
+  ylab("Rainfall (acre-feet)")
+```
+
+You can actually use *ggplot* to plot the rainfall data on the log scale (shown below), but that doesn't create a new variable in the dataset.  To do that, we actually have to assign a new column in the *data.frame*. 
+
+```{r}
+# First, here's a ggplot call to show the log-scale rainfall
+ggplot(data = case0301, aes(x = Treatment, y = log(Rainfall))) + 
+  geom_boxplot(fill = "orange") + 
+  ylab("Rainfall [log(acre-feet)]")
+
+# Next, here's how to create a new column
+my.data = case0301
+my.data$lRainfall <- log(my.data$Rainfall)
+head(my.data)
+```
+
+I created a whole new *data.frame* called `my.data` to show you this, just because I didn't want to change the object `case0301` that comes with the *Sleuth3* package. It's not necessary that you do it this way (i.e., you could just add a new column to `case0301`), but I find it to be better to keep the integrity of the objects in any package (library) that I load.
+
+In the new *data.frame*, I create a new column called `lRainfall` and say that I want it to have values equal to `log(my.data$Rainfall)`. It's good practice to create a new column (with a different name) rather than writing over an existing column with new values.
+
+Try creating another new column (perhaps called `Rainfall2`) that will have the original Rainfall values multiplied by 2.
+
+```{r}
+my.data$Rainfall2 <- 2*my.data$Rainfall
+dim(my.data)
+head(my.data)
+```
+
+Now when we look at the data it has these additional columns.
+
+Let's also think a little about this transformation. From the original box plot, the data seemed very skewed (large outliers, and for the Unseeded group the median (thick line in the box) is toward one side of the box). After the transformation, the data seem a lot less skewed.
+
+
+## Assumptions of the t-test
+
+The main assumptions of the two-sample t-test (with equal variances) are:
+
+1. The statistical independence of the observations within each sample.
+
+2. The Normality of the underlying population distributions.
+
+3. The equality of the two population variances (equivalently, the two population standard deviations).
+
+4. The independence of the two samples.
+
+To assess assumptions 1 and 4, you have to think carefully about how the data were obtained. Typically, data that are collected close together in time and/or space, or data that are collected together in some kind of cluster (e.g., like identical twins) are NOT statistically independent. 
+
+> Two observations are statistically independent if knowing the value of one of them, does not change the probability having to do with the value of the other.
+
+To assess the Normality of the underlying population distributions, you have to take a look at the shapes of the sample distributions and make a judgement call about whether you think the samples could plausibly have come from Normal populations. The two-sample t-test is fairly robust to departures from this assumption (particularly for large sample sizes), but it should be evaluated on a case-by-case basis.
+
+Let's do this for the cloud seeding data, looking at the original Rainfall value (before any transformation). I have included the addition `facet_wrap(~ Treatment)` to the ggplot function call. This means that instead of creating one histogram with all values of rainfall, I want to create two based on the variable named *Treatment*. So we create histograms for both the Seeded and Unseeded treatments.
+
+```{r}
+ggplot(case0301, aes(x=Rainfall)) +
+  geom_histogram(binwidth=50) +
+  facet_wrap(~ Treatment)
+```
+
+The sample distributions don't look that Normal.. perhaps this is why we took the log transform? Let's look at the histograms of the log-transformed Rainfall variable (remember we named this `lRainfall` in `my.data`). I have also changed the binwidth since taking the log of a large number makes it smaller. These look much more normal!
+
+```{r}
+ggplot(my.data, aes(x=lRainfall)) +
+  geom_histogram(binwidth=0.5) +
+  facet_wrap(~ Treatment)
+```
+
+
+Finally, for assumption 3, to assess the equality of the two population variances, we compare the similarity of the two sample variances (or the spread of the two sample distributions). We can do this by looking at the same histograms as above. Using `facet_wrap()` helpfully puts both histograms on the same scale for the axes (i.e., the x-axis in untransformed rainfall goes to about 3000 in each case). The untransformed rainfall samples could have slightly different variances due to a few large values in the Seeded group. This difference seems to go away a bit when we take the log-transformation.
+
+### Some simulations. 
+
+In lecture we've seen some examples of constructing confidence intervals from many samples and looking at whether or not each interval contains the population mean $\mu$. Let's see how to do this:
+
+1. Draw $n_1$ independent observations from population 1 with mean $\mu_1$ and standard deviation $\sigma_1$.
+
+2. Draw $n_2$ independent observations from population 2 with mean $\mu_2$ and standard deviation $\sigma_2$
+
+3. Compute a 95% confidence interval for the difference, $\mu_2-\mu_1$
+
+4. See if the true value of $\mu_2 - \mu_1$ (which we know because of steps 1 and 2) falls into the 95% confidence interval we constructed in part 3.
+
+5. Repeat steps 1 through 4 a large number of times, say 10000
+
+6. Compute the percent of the simulations (out of 10000) in which the 95% confidence interval contains the true value of $\mu_2 - \mu_1$.
+
+Then, if the two-sample $t$-test (and $t$-confidence interval) is valid, the percent that we get in step 6 should be 95% (i.e., because we're constructing 95% intervals in each simulation).
+
+There are a number of different ways that I could perform these kinds of simulations, but I'm going to show you the most straightforward way I know (even though it's not the fastest), because I appreciate that some of you may not have seen anything like this before.
+
+```{r}
+# first specify sample sizes, means, sds, and the number of simulations we'll run
+n1 <- 10
+n2 <- 10
+mu1 <- 10
+mu2 <- 12
+sig1 <- 2
+sig2 <- 4
+
+nsim <-  10000
+
+# now set up a numeric vector that tracks the success or failure of each confidence interval
+
+coverage <- numeric(10000)
+
+# for all of the 95% confidence intervals, we'll use the same multiplier from a t-distribution with n1 + n2 - 2 degrees of freedom, so we can just compute that now:
+
+multiplier <- qt(0.975, n1+n2-2)
+
+# also, for the entire simulation, we'll be evaluating whether the difference in the population means, mu2 - mu1 is inside each 95% confidence interval, so we can compute that "true value" now:
+
+truth <- mu2 - mu1
+
+# now, run the simulation --- look specifically at the commands inside the curly brackets, as these commands will track with steps 1 through 4 above.
+
+for (i in 1:nsim) {
+  # calculate the estimate
+  samp1 <- rnorm(n1,mu1,sig1) # sample from Normal population 1
+  samp2 <- rnorm(n2,mu2,sig2) # sample from Normal population 2
+  estimate <- mean(samp2) - mean(samp1)
+  
+  # calulate the standard error of the estimate
+  se_estimate <- sqrt((var(samp1)*(n1-1)+var(samp2)*(n2-1))/(n1+n2-2))*sqrt(1/n1 + 1/n2)
+  
+  # get the lower and upper bounds of the confidence interval
+  lower <- estimate - multiplier*se_estimate
+  upper <- estimate + multiplier*se_estimate
+  
+  # decide whether the true value, mu2-mu1 is in the interval
+  coverage[i] <- ifelse(truth >= lower & truth <= upper,1,0)
+}
+
+# the 'for (i in 1:nsim) {...}' construction just tells R to run the commands within the curly brackets nsim number of times.
+
+# the final command within the curly brackets uses the 'ifelse' function -- it evaluates the complex Boolean expression that's asking whether the truth is greater than or equal to the lower bound AND whether it's less than or equal to the upper bound. If the answer is TRUE, then the truth is in the 95% confidence interval, and the 'ifelse' function returns the value 1; if the answer is FALSE, then the 'ifelse' function returns the value 0.
+
+# now, we just have to compute the percent coverage:
+
+(pct.coverage = (sum(coverage)/10000)*100)
+```
+
+This particular simulation run matches the one in *The Statistical Sleuth* that appears in the first row and second column of the table in Display 3.5 (the entry there is 94.2, based on 1000 simulations). The specific one you get might be a little different due to the randomness of the samples.
+
+### What to modify (OPTIONAL)
+
+#### Modification 1 
+
+If you want to reproduce the results in Display 3.5, you can change the sample sizes, n1 and n2, and/or the standard deviations, sig1 and sig2, in the code.
+
+#### Modification 2
+
+If you want to examine the performance of the confidence interval under differently shaped distributions, you'll have to change the commands at lines 215 and/or 216. The exponential distribution (type *?rexp* at the R command line prompt) might be a good place to start. You'll have to learn about that distribution specification in R to figure out how to get the desired means and standard deviations (i.e., it's not as simple as plugging in values like *mu1* and *sig1*).

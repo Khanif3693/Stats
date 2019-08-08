@@ -1,0 +1,196 @@
+---
+title: 'ST 411/511 Lab 3: Paired Samples, two-sample t-test and Transformations'
+date: July 31
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+  html_notebook: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# Load the packages we will use in this lab
+library(ggplot2)
+library(Sleuth3)
+```
+
+## A few announcements
+
+- If you would like a great R reference, try *R for Data Science* (Garrett Grolemund and Hadley Wickham). You can access the book for free at: http://r4ds.had.co.nz/. The data visualization, exploratory data analysis, and R Markdown chapters may be of particular interest
+- Remember that you can click "Preview Notebook" to view this document in the Viewer pane. This may be helpful because math notation that I write between "$" will appear formatted correctly. If you'd like to change the position of the panes in RStudio, you can do so in Preferences > Pane Layout.
+
+## Outline
+
+In today's lab, we will 
+
+- start thinking about paired and unpaired samples
+- see an introduction to a two-sample $t$-test
+
+
+
+## Paired and Unpaired Samples
+
+Consider a study to determine the effects of a pain medication on
+blood pressure. Here are two possible ways we could conduct the study:
+
+1. **Study A**
+
+    a. Obtain baseline blood pressure measurements on each of 25 subjects.
+
+    b. Administer pain medication to all 25 of these subjects.
+
+    c. Wait 2 hours, then obtain a post-medication blood pressure
+measurement on all 25 subjects.
+
+
+2. **Study B**
+
+    a. Randomly assign 25 subjects with normal-range blood pressure to two groups---12 subjects to a control group and the other 13 to an active treatment group.
+
+    b. Administer a placebo treatment to all 12 subjects in the placebo group and the pain medication to all 13 subjects in the active treatment group.
+
+    c. Wait 2 hours, then obtain a post-medication blood pressure
+measurement on all 25 subjects.
+ 
+There are a few things we could debate about in deciding which one of these studies is best. But, we can certainly agree that they are fundamentally different in several ways:
+
+* **Study A** doesn't involve randomization, while **Study
+B** does.
+
+* **Study A** doesn't involve a placebo, while **Study B** does.
+
+* In **Study B**, there is only one blood pressure measurement taken
+from each subject, while in **Study A** there are two measurements for each subject.
+
+* In **Study A**, each subject acts as his or her own control, whereas in **Study B** there is an entire control group.
+
+### Paired Samples
+
+The data we obtain in **Study A** are an example of a **paired sample** -- for each subject, we have two (i.e., a pair of)
+measurements.  And, for any one subject, it's hard to think of those two measurements as statistically independent, since they are taken on the same person! Recall that two events (or
+observations) are statistically independent if the occurrence of one does not change the probability associated with the other. 
+
+By contrast, in **Study B** we have two samples, and we can consider the samples to be independent---a subject's blood pressure in the control group should not affect anything having to do with a subject's blood pressure in the active treatment group.
+
+The pairing in **Study A** should be clear---we have a *before* and an *after* measurement on each subject. In paired samples, there is some
+connection between the two samples---e.g., before/after measurements on the same subjects. Because of this pairing, we cannot regard the two samples as statistically independent. Ultimately, the point here is that we have to treat paired samples differently than we treat unpaired samples.
+
+### Statistical methods using the t-distribuion.
+
+#### Finch data: unpaired samples
+
+The first case study in Chapter 2 involves data from a famous study undertaken by Peter and Rosemary Grant on the Galapagos Island of Daphne Major. The data in *case0201* contain beak depth measurements on two samples of finches. The first sample was obtained in 1976, before a severe drought that occurred in 1977. The second sample was obtained in 1978, the year after the drought. 
+
+The Grants wondered whether the post-drought finches would have stronger, larger beaks than the pre-drought finches. If so, they argued that such a difference provided confirmation of Darwin's Survival of the Fittest theory - after the drought the only remaining food source was a large, tough seed that the finches usually ignored.
+
+The question is: Are the average beak depths larger in the post-drought sample than in the pre-drought sample?
+
+First, take a look at the data, read the help file, etc.
+
+```{r}
+head(case0201)
+?case0201
+```
+
+Next, let's look at a plot of the data. I like the side-by-side boxplots for comparing groups:
+
+```{r}
+ggplot(data = case0201, aes(x = Year, y = Depth)) + geom_boxplot(fill = "orange") + ylab("Beak Depth (mm)")
+```
+
+Something went wrong because we are only getting one box. What happened? From the warning message that appears above the plot, it looks like `ggplot` thinks that *Year* is a quantitative variable, rather than a categorical variable. This is easy enough to fix. In the code below, I've just wrapped the *as.factor* function around the *Year* variable:
+
+```{r}
+ggplot(data = case0201, aes(x = as.factor(Year), y = Depth)) + geom_boxplot(fill = "orange") + ylab("Beak Depth (mm)")
+```
+That's more what we wanted to see, though you may want to go back and clean up the x-axis label.
+
+Now, if you inspect the side-by-side plots above, what do you think? Does it look like there's a difference in average beak depth between the two samples? By how much?
+
+We can calculate the difference in two means by using the `tapply` function. Singe the variable of interest (Depth) and the grouping variable (Year) are in seperate columns, we want to use the `tapply` to find the mean Depth for each Year. Within the function, first provide the varable of interst, next provide the grouping variable and finally provide the function that you wish to apply to both groups (here it would be the `mean`)
+
+```{r}
+tapply(case0201$Depth, case0201$Year, mean)
+```
+
+```{r}
+10.138-9.47
+```
+
+
+So for these two samples, the estimated difference in mean beak depth (1978 measurements minus 1976 measurements) is about 0.67mm. There are now a few things to consider:
+
+1. Is this difference large enough to be considered **scientifically** meaningful? This is for the Grants and their peer reviewers to decide.
+
+2. Is this difference large enough to be unlikely to have occurred just by chance? This is a question for us to evaluate by looking at the difference between the two means relative to a probability distribution induced by assuming the null hypothesis to be true.
+
+> Under the null hypothesis of no difference in mean beak depth between the two populations of finches, we can use a t-distribuion to evaluate whether the observed difference in means is unusal.
+
+We'll cover some of the details of this two-sample $t$-test in class, and it's certainly well covered in *The Sleuth*. Here we'll look at how to perform this test in R, and also how to interpret what we get out.
+
+In R, we use the function `t.test()` for this evaluation. Let's go ahead and perform the test, and then I'll comment on different components of the output. If you want to learn more about the `t.test()` function, just type `?t.test` at the command line prompt in the Console pane.
+
+```{r}
+t.test(Depth ~ Year, data = case0201)
+```
+
+1. The title of this output is **Welch Two Sample t-test**. More on that in class and in your text.
+
+2. The observed $t$-statistic is *t = -4.5833*. This is related to our calculation of the difference in the two means as follows:
+
+$$t=\frac{\text{difference in sample means - null hypothesized value for difference}}{SE}$$
+
+Here, *SE* stands for **standard error**, and it's a number that is computed using the sample variances from the two samples.
+
+> In general, the standard error of a statistic is a measure of by how much we expect that statistic to change from sample to sample.
+
+3. Recall that the *p-value* is the probability, assuming the null hypothesis is true, of observing a statistic as extreme or more extreme that the -4.5833 that we did observe. Notice that in this output, *p < 0.0001*, which gives *convincing* evidence that the observed difference is not due to chance. That is, it gives us convincing evidence **against** the null hypothesis.
+
+4. The remainder of the output is relatively straightforward, though we'll spend more time in class talking about the 95% confidence interval output.
+
+### Transformation and adding new variables to a data frame
+
+You can add new variables to a *data.frame* in a few different ways. I'll show you a really straightforward way to do this. For those who want to learn another way, you can check out the *mutute* function in the `tidyverse` package.  Here's a simple way to create a new variable. 
+
+I'll use the cloud seeding case study data (case study 1 from Chapter 3, `case0301`) as an example, since the authors of *The Statistical Sleuth* suggest that we examine the rainfall data on the log scale. First, let's create side-by-side boxplots of the rainfall data on the original scale of measurement (acre-feet).
+
+```{r}
+head(case0301)
+ggplot(data = case0301, aes(x = Treatment, y = Rainfall)) + 
+  geom_boxplot(fill = "orange") + 
+  ylab("Rainfall (acre-feet)")
+```
+
+You can actually use *ggplot* to plot the rainfall data on the log scale (shown below), but that doesn't create a new variable in the dataset.  To do that, we actually have to assign a new column in the *data.frame*. 
+
+```{r}
+# First, here's a ggplot call to show the log-scale rainfall
+ggplot(data = case0301, aes(x = Treatment, y = log(Rainfall))) + 
+  geom_boxplot(fill = "orange") + 
+  ylab("Rainfall [log(acre-feet)]")
+
+# Next, here's how to create a new column
+my.data = case0301
+my.data$lRainfall <- log(my.data$Rainfall)
+head(my.data)
+```
+Let's also think a little about this transformation. From the original box plot, the data seemed very skewed (large outliers, and for the Unseeded group the median (thick line in the box) is toward one side of the box). After the transformation, the data seem a lot less skewed. One condition of the two-sample t-test is that the distribution of differences in sample means is normal (which we will have if the samples we obtain come from normal populations). While rainfall on the original scale does not appear to be normal, log(rainfall) does appear to be approximately normal. 
+
+I created a whole new *data.frame* called `my.data` to show you this, just because I didn't want to change the object `case0301` that comes with the *Sleuth3* package. It's not necessary that you do it this way (i.e., you could just add a new column to `case0301`), but I find it to be better to keep the integrity of the objects in any package (library) that I load.
+
+In the new *data.frame*, I create a new column called `lRainfall` and say that I want it to have values equal to `log(my.data$Rainfall)`. *It's good practice to create a new column (with a different name) rather than writing over an existing column with new values*.
+
+Try creating another new column (perhaps called `Rainfall2`) that will have the original Rainfall values multiplied by 2.
+
+```{r}
+my.data$Rainfall2 <- 2*my.data$Rainfall
+head(my.data)
+```
+
+Now when we look at the data it has these additional columns.
+
+
+

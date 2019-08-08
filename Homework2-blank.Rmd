@@ -1,0 +1,176 @@
+---
+title: "ST 411/511 Homework 2"
+author: "Hanif Khan"
+date: "Summer 2018"
+output:
+  pdf_document: default
+  html_notebook: default
+  html_document:
+    df_print: paged
+subtitle: Due on July 30th
+---
+
+```{r setup, include=FALSE}
+library(ggplot2)
+```
+
+## Instructions
+
+This assignment is due by 11:59 PM, 30 July, 2018 on Canvas. **You should submit your assignment as both a .Rmd (R Markdown) file and whatever format you choose to knit from it (word, pdf, html).** To help out, I have included a template .Rmd file containing the problems that you can use to fill in your solutions.
+
+## Problems (25 points total)
+
+
+### Question 1
+
+A random sample of $n=500$ books is selected from a library and the number of words in the title of each book is recorded. The sample mean number of words in the title is 6.2 words. The population variance is 40 words$^2$.
+
+#### a) (2 points) Compute the $z$-statistic for testing the null hypothesis $H_0: \mu=7$.
+#### Answer: we know that the $z$-static value is  
+$$z=\frac{\bar{X}-\mu_0}{\sqrt{\sigma^2/n}}$$
+
+```{r}
+zstat <- (6.2-7)/sqrt(40/500)
+zstat
+
+```
+ The above values shows the z-static for the $n$=500, $\mu$=7 and $Xbar$=6.2
+ 
+#### b) (3 points) Perform a level $\alpha=0.1$ test of $H_0: \mu = 7$ vs. the one-sided lesser alternative $H_A: \mu < 7$.
+Answer:
+for $\alpha$ = 0.1 and $H_A: \mu < 7$ and $H_0: \mu = 7$ 
+we know that for $\alpha =0.1$ rejection region is $Z_s<=-1.281$ & $Z_s >=+1.281$. In our case we got $z$ =-2.828427 from (a)
+and hence it falls in rejection region and we do not have enough evidence to accept it so we must have to reject it. please check the following code for the more details.
+
+```{r}
+qnorm(0.1) #for left bound
+qnorm(0.9) # for right bound
+
+```
+
+#### c) (2 points) What is the one-sided lesser $p$-value for the statistic you computed in part a)?
+Answer: pnorm can be find by following formula
+
+
+```{r}
+pvalue<-pnorm(zstat) #zstat calculated in (a)
+pvalue
+```
+$p$value states that the ztate falls in the 2% region of the left bound.
+
+
+
+#### d) (2 points) What is the two-sided $p$-value for the statistic you computed in part a)?
+
+for finding the p value for the two sided we can write the following code. In short just divide it by two. that is 1 percent on each side
+```{r}
+pvalue/2
+
+
+```
+
+#### e) (2 points) Construct a 95% confidence interval for the population mean number of words per title. Hint: recall that a 95% confidence interval is formed by the sample mean $\pm 1.96 \times$ standard deviation of the sampling distribution.
+
+Answer: for 95% CI we have $\alpha=0.05$ and hence $\alpha/2$=0.025
+and we can calculate the CI as follows since we have $x$=6.2 and $\sigma^2=40$ and $n$ = 500
+```{r}
+CI1 <- 6.2-qnorm(0.975)*sqrt(40/500)
+CI2 <-6.2+qnorm(0.975)*sqrt(40/500)
+CI1
+CI2
+
+```
+
+#### f) (1 point) Based on your confidence interval from part e), would a level $\alpha=0.05$ two-sided hypothesis test reject or fail to reject the null hypothesis that the population mean is 6.5 words per title?
+Answer:So for this we have Null Hypothesis that $H_0 = 6.5$ and we need to test this for $\alpha=0.05$ with two sided hypothesis.
+So, lets recall all the previous details we had before that is $X$=6.2
+and variance = $\sigma^2$=40 and $N$=500
+and we know that for the two sided our rejection region is $Z_s<=-1.9599$ & $Z_s >=+1.9599$ (for two sided and $\alpha$=0.05).  
+
+```{r}
+zstat2<- (6.2-6.5)/sqrt(40/500)
+zstat2
+
+```
+Since the value we got is -1.06 which is smaller then the rejection value -1.9599 and we do not have enough evidence to reject the Null Hypothesis.
+Let's talk about the p value, we  got pvalue as 0.144 which is about 14%
+
+here is the code for the p value
+
+```{r}
+pnorm(zstat2)
+
+```
+
+### Question 2
+
+Consider the `rivers` data set in `R`, which is a vector of the lengths (in miles) of 144 "major" rivers in North America, as compiled by the US Geological Survey. Consider this a random sample of all "major" rivers in North America.
+
+```{r}
+data(rivers)
+rivers
+```
+
+#### a) (1 point) What is the length of the longest "major" river in North America? Hint: you can find the maximum of a vector using the `max` function.
+
+Answer:
+
+```{r}
+longest<-max(rivers)
+longest
+
+```
+
+
+#### b) (2 points) Create a histogram of the lengths of the rivers. Describe the shape of the distribution. Note: to use ggplot, the data have to be formatted as a data frame. I have given you the line of code that does this.
+
+```{r}
+riversdf <- data.frame(rivers)
+library(ggplot2)
+ggplot(riversdf, aes(x=rivers)) + geom_histogram(binwidth=50, color="black", alpha=0.5, fill="tomato") + ggtitle("Histogram of length of Rivers") + xlab("Length of Rivers")
+
+```
+
+
+
+#### c) (2 points) Find the test statistic for a $t$-test of $H_0:\mu=600$ versus $H_A:\mu\neq 600$.
+
+```{r}
+mfs<-mean(riversdf$rivers)  #sample mean
+vfs<-var(riversdf$rivers) # sample variance
+mfs
+vfs
+t<- (mfs-600)/sqrt(vfs/141)
+t
+
+```
+
+Answer: for the t test we have following formula
+$$t(\mu_0)=\frac{\bar{X}-\mu_0}{\sqrt{s^2/n}}=\frac{591.18-600}{\sqrt{243908.4/141}}=-0.2119572$$
+
+
+#### d) (2 points) Find the $p$-value corresponding to your test statistic from part c). Recall that you are using a two-sided alternative hypothesis.
+Let's find the critical values for a test at significance level $\alpha=0.1$. We are doing a two-sided test, so the critical values $t_{(n-1)1-\alpha/2}$ will be the values on a $t$-distribution with $n-1$ degrees of freedom such that there is area 0.05 in each tail.
+
+
+```{r}
+
+pvalue<-2*(1-pt(abs(t), df=140))
+pvalue
+qt(0.05, df=140)
+qt(0.95, df=140)
+```
+
+#### e) (2 points) What do you conclude from this hypothesis test? State your conclusion in words and in the context of the problem.
+- The critical values (+/- 1.655) are at the inner edges of the rejection region.
+- The test statistic (-0.211) is toward the middle of the plot.
+- The test statistic does not fall within the rejection region , so we would fail to reject the null hypothesis. The average length of river  could be 600.
+
+### Question 3 (4 points) 
+
+Researchers are curious about how soil type affects plant growth. To study this, they obtain 100 seeds of a particular plant species from a local seed collector. They randomly choose 50 seeds and plant each in a separate pot filled with soil type A. The remaining 50 seeds are each planted in a separate plot filled with soil type B. The plants receive the same care, and at the end of 3 months the height of each plant is measured. Is this an example of a randomized experiment or an observational study? To what group can inference be made?
+
+<b>Answer: This study seems similar to the rat study for the two different foods, in this case we have two different soil for the 100 seeds of a plant. So I belive it comes under the randomized experiment.(because in this study we have selection of group in our control which whereas in the observational study formation of group is not in our control.) And also similar to the group of rat we can make two different group for the soil type A and soil type B and find out their mean of differences which will help us to know about the population parameter using paired t-test  as we have done for the rat experiment.</b>
+
+
+

@@ -1,0 +1,276 @@
+---
+title: 'ST 411/511 Lab 6: Linear Combinations and Multiple Comparisons of Means'
+date: Aug 9, 2018
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+  html_notebook: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# Load the packages we will use in this lab
+library(ggplot2)
+library(Sleuth3)
+library(multcomp)
+library(agricolae)
+```
+If you ever run into a situation when loading packages and you get an error that says: 
+Error in library(packagename ) : there is no package called 'packagename'
+
+You must install the package on your computer. For example, when I first tried to load the multcomp package, I got this error. To fix the issue I installed the package using the code below, then went back to load the package.
+
+(remove # if you are wanting to install a package)
+```{r}
+install.packages("agricolae")
+```
+## Outline
+
+In today's lab we will 
+
+- See how to read in data from external sources (helpful for your projects!)
+- Look at linear combinations of means
+- Look at multiple comparisons of means, including the adjustment procedures mentioned in lecture
+
+## Reading in Data from External Sources
+
+It is easy to read in external data to R. Common formats include .csv and .txt files. A .csv (comma separated value) file uses a comma as a delimiter to denote new columns. You can save an Excel file as a .csv file by saying File > Save As. The `read.csv()` function can be used to read in .csv files, or more generally the `read.table()` function can be used to read in other types of data files with delimiters other than commas.
+
+The general format will be:
+
+`dataname <- read.csv("Filepath")`
+
+where the data set will be saved in your R environment as a data frame with name *dataname* and Filepath specifies the place where you have saved your data file. We'll look at several ways to specify the Filepath.
+
+### Reading files directly from the web
+
+Remember the FiveThiryEight movie data from Fandango we looked at all the way back in the first week? Once we have navigated to the raw data online (https://raw.githubusercontent.com/fivethirtyeight/data/master/fandango/fandango_score_comparison.csv), and observing that the URL path ends with .csv, we can download it directly into R:
+
+```{r}
+movies <- read.csv("https://raw.githubusercontent.com/fivethirtyeight/data/master/fandango/fandango_score_comparison.csv")
+```
+
+Note that if I clicked on the URL, the page that shows up is just a text file with a bunch of numbers separated by commas, and no other formatting.
+
+Let's make a plot of the RottenTomatoes Score vs. the IMDB score just for fun and to make sure our data is there.
+
+```{r}
+ggplot(movies, aes(x=RottenTomatoes, y=IMDB)) + geom_point()
+```
+
+### Reading files saved on your computer using a full file path
+
+If you have saved the file somewhere on your computer (or are using your own data), you can read it in by specifying the full file path. This will look a little different based on what operating system you are using.
+
+For Mac, it would be something like
+
+`dataname <- read.csv("/Users/mooreju/Desktop/filename.csv")`
+
+For Windows, it would be something like
+
+`dataname <- read.csv("C:\Desktop\filename.csv")`
+
+Or wherever you have the file saved.
+
+### Reading files saved on your computer by setting the working directory
+
+Alternatively, you can tell R where it should look for all files used in a particular session. This is called setting the working directory. To do this, select Session > Set Working Directory > Choose Directory from the menu at the top of the screen. Then select the directory where the file you are trying to load is saved. Then you only need to specify the file name (not the full path) in the `read.csv()` function:
+
+`dataname <- read.csv("filename.csv")`
+
+### More Information
+
+On your own time: try reading a data file you have saved on your computer into R.
+
+For more information, including examples of other file formats, this is a great resource:
+
+> https://www.datacamp.com/community/tutorials/r-data-import-tutorial
+
+## Linear Combinations of Means
+
+We saw how to calculate $g$ and $SE(g)$ and form a test statistic for an estimated linear combination by hand in lecture. Here we'll see how to do it in R. We'll look at the same disability case study data (`case0601`) and reproduce the one group vs. average of the rest example from Lecture 19.
+
+Recall the question: "Is the average of the means of ratings in the handicap groups equal to the mean rating for the non-handicapped group?"
+
+Let's look at the boxplot again. Note that the factor categories are in alphabetical order, so the "None" group is fourth. This is important for when we set up our contrasts.
+
+```{r}
+data(case0601)
+ggplot(data = case0601, aes(Handicap, Score)) + 
+  geom_boxplot()
+```
+
+We first fit and save the full (separate means) model in the way we are used to, then set up the contrasts. The bit in quotes ("Avg. Handicap - Non-Handicap") is just something I am naming this contrast so I remember what it is, but you can put anything you want in the quotes. Then I specify the values of the contrasts based on the ordering of the factor. Note that the order of the contrast values is different than what was in lecture, since I had re-ordered the levels so that "None" was first in that case. The result should still be the same though! We then specify the model (first argument) and the linear combination(s) that should be tested (second argument) in the `glht()` function call.
+
+```{r}
+fullMod <- lm(Score ~ Handicap, data=case0601)
+
+contrastsMat <- rbind("Avg. Handicap - Non-Handicap" = c(-1/4, -1/4, -1/4, 1, -1/4))
+
+linHyps <- glht(fullMod, linfct=mcp(Handicap=contrastsMat))
+linHyps
+```
+
+How does this compare? The value of $g$ (Estimate) is the same (compare with Lecture 19), up to a small bit of rounding error.
+
+We can find the $p$-value of the test by using
+
+```{r}
+summary(linHyps)
+```
+
+Compare the standard error (Std. Error) of 0.48793 with what we found by hand (Lecture 19). It's the same! Compare the $p$-value (Pr(>|t|)) of 0.942 with what we found by hand (Lecture 19). It's also the same!
+
+We can also fund the confidence interval associated with this estimate using 
+
+```{r}
+confint(linHyps)
+```
+
+Note that this interval DOES contain 0, which is an indication to us that we would *fail to reject* the null hypothesis that the average of the means of ratings in the handicap groups equal to the mean rating for the non-handicapped group. This agrees with our $p$-value greater than 0.05.
+
+Want more practice? Try reproducing one of the other tests from Lecture 19.
+
+
+
+## Multiple Comparisons of Means
+
+### Some Review: Probability
+
+ > I have used some Latex mathematical notation in this section, and so it may be easier to hit the Preview button above, and view in the Viewer pane.
+
+Remember that if we have two events, $A$ and $B$, the *joint probability* of $A$ and $B$ (in words "the probability that A and B both occur") is given by:
+
+> $Pr(A\cap B) = Pr(A|B)Pr(B)$,
+
+where $Pr(A|B)$ is the *conditional probability* of $A$ given $B$ (in words "the probability that A occurs, given that B occurs"). If $A$ and $B$ are statistically independent, then $Pr(A|B) = Pr(A)$ and
+
+> $Pr(A\cap B) = Pr(A)Pr(B)$.
+
+#### Family-wise Confidence Levels
+
+Now I will relate *joint probability* to the problem of making *multiple pairwise comparisons*. We will also do this in the context of the disability case study.
+
+```{r}
+ggplot(data = case0601, aes(Handicap, Score)) + 
+  geom_boxplot()
+```
+
+Suppose we want to build two confidence intervals, one to compare the means in the "Amputee" and "Crutches" groups, and one to compare the "None" and "Wheelchair" groups. To simplify the discussion, I'll use the following notational equivalences (based on the order in the boxplot, which is alphabetic):
+
+- Amputee == 1
+- Crutches == 2
+- None == 4
+- Wheelchair == 5
+
+Therefore, in terms of population quantities, we want a confidence interval for $\mu_1-\mu_2$, and *at the same time* a confidence interval for $\mu_4-\mu_5$. 
+
+Any confidence interval has a probability associated with it, and so the rules for calculating *joint* confidence levels follow the same rules as those for calculating *joint* probabilities. That is, if we want to build joint confidence intervals for $\mu_1-\mu_2$ and $\mu_4-\mu_5$, we'll be in trouble if we simply assign them both 95% confidence levels. 
+
+> This is because confidence levels multiply: two 95% confidence intervals without any adjustment combine to yield a 90.25% joint confidence level (0.95 x 0.95 = 0.9025).
+
+(Note that here since each sample only occurs in one interval, we can just multiply 0.95 by 0.95. If we were comparing, for example, $mu_1-\mu_2$ and $\mu_1-\mu_3$ it wouldn't be quite so straightforward.)
+
+For this reason, we'll have to make adjustments to each *individual* confidence level so that both confidence intervals together will have 95% confidence level.
+
+A collection of confidence intervals is sometimes referred to as a *family* of confidence intervals, and so we talk about the *family-wise confidence level* (as opposed to the individual or comparison-wise confidence level). 
+
+Each of several different multiple comparison procedures use different methods to make corrections to the individual confidence intervals so that the resulting family-wise confidence is at an appropriate level. We'll now look at a few of these procedures for these data, considering more than just those two comparisons discussed above.
+
+### Handicap Study and Multiple Comparisons
+
+First, I'll fit the one-way ANOVA model to the Handicap data, because most of the multiple comparison procedures use that model object.
+
+```{r}
+Handicap_Mod <- lm(Score ~ Handicap, data = case0601)
+```
+
+Soon, I'll make use of the `multcomp` package in R, and specifically, the `glht()` function. *glht* stands for general linear hypothesis test. Make sure that you have loaded the `multcomp` package (the code is at the beginning of the lab).
+
+```{r}
+?glht
+```
+
+To use `glht()`, I pass in a fitted model object (I'll use `Handicap_Mod` that I just created), and I have to pass in an argument called `linfct` which is the specific linear combinations of means that I want to test. Remember that a difference in two means is a simple example of a linear combination of means. Fortunately, there is a relatively straightforward method for getting R to return all pairwise comparisons using different procedures, and I'll show you that next.
+
+
+#### Tukey-Kramer
+
+The Tukey-Kramer procedure is perhaps the most common for making simultaneous comparisons. We create an object called `Handicap_Tukey` by using the `glht` function. We'll use this object in some of the other methods as well.
+
+In R it's relatively straightforward to get all of the Tukey-corrected confidence intervals. Using `summary()` on the glht object will print out all 10 different adjusted $p$-values (which we would compare to $\alpha=0.05$), and using `confint()` on the glht object will print out all 10 confidence intervals.
+
+```{r}
+Handicap_Tukey <- glht(Handicap_Mod, linfct = mcp(Handicap = "Tukey"))
+summary(Handicap_Tukey)
+confint(Handicap_Tukey)
+```
+
+Notice that it looks like we only have suggestive evidence that the means in the "Hearing" and "Crutches" groups are different ($p = 0.03$).
+
+Remember that we *reject* the null hypothesis in this case when the confidence interval does NOT contain 0. Which intervals do not contain 0? Just the Hearing - Crutches interval, which matches (as it should) with the results of the first table that contains the $p$-values. The Hearing - Crutches hypothesis is the only one with a $p$-value less than 0.05.
+
+
+#### Fisher's LSD
+
+Here is the R command for getting Fisher's LSD (unadjusted) $p$-values and confidence intervals:
+
+```{r}
+summary(Handicap_Tukey, test=adjusted("none"))
+confint(Handicap_Tukey, calpha = univariate_calpha())
+```
+
+Notice that if we did use an adjustment procedure, we could think three of the comparisons were significance at the 0.05 level. But when we used the Tukey-Kramer adjustment, only one of them was significant.
+
+Compare these intervals with the Tukey-Kramer ones above. Notice that the point estimates are the same (as we expect), but the lower and upper bounds are changing, showing that the half-widths of the confidence intervals are changing.
+
+Look at the first comparison (Crutches - Amputee). The Tukey-Kramer confidence interval is *wider*, as we would expect since the Fisher's LSD method does not make any adjustment.
+
+#### Bonferroni
+
+For the Bonferroni Intervals, where we enter the value 0.995 because (0.95)^(1/10) is equal to 0.995. The 0.95 comes from the confidence level we want, and the 10 comes from the number of pairwise comparisons we are considering. Note that if we were doing a Bonferroni correction for something other than all pairwise comparisons this value would be different.
+
+```{r}
+confint(Handicap_Tukey, calpha = univariate_calpha(), level = 0.995)
+```
+
+Again, compare the intervals. The Crutches - Amputee interval is a little wider here than the Tukey-Kramer one. Look at which intervals contain 0.
+
+#### ScheffÃ
+
+For the ScheffÃ procedure, we can use the `scheffe.test()` function from the `agricolae` package. (So note that this package also has to be loaded. You will have done this already if you loaded all the required packages for the lab in the first bit of code at the top of the lab.)
+
+```{r}
+scheffe.test(Handicap_Mod, "Handicap", alpha = 0.05, group = FALSE, console = TRUE)
+```
+
+Again, compare the intervals. Notice that this function is taking the difference in the other order: so we were doing Crutches - Amputee before, but here we have Amputee - Crutches. This doesn't impact the $p$-values, but note that the differences are the negative values of what they were before, and that the lower and upper bounds of the confidence are also affected. Precisely, the lower bound times (-1) should be the upper bound for comparison with the other intervals, and similarly the upper bound times (-1) should be the lower bound for comparison with the other intervals. The Crutches - Amputee interval is a little wider here than the Bonferroni one. In general, the ScheffÃ© procedure tends to be the most conservative.
+
+#### Dunnett's Procedure
+
+This procedure is used when the only pairwise comparisons of interest are between each of several treatments and a control. In the Handicap case study, the "None" group is the control. 
+
+To make the `glht()` function work for us using Dunnett's method, we have to re-arrange the levels of the *Handicap* variable, because the function assumes that the *control group is indicated by the first level*. I re-arrange the levels using the `relevel()` function. Notice that I also have to refit the one-way ANOVA model.
+
+
+```{r}
+with(case0601, levels(Handicap))
+case0601$Handicap <- with(case0601, relevel(Handicap, ref = "None"))
+with(case0601, levels(Handicap))
+Handicap_Mod <- lm(Score ~ Handicap, data = case0601)
+```
+
+Now, I can call `glht()`, using Dunnett's method:
+
+```{r}
+Handicap_Dunnett <- glht(Handicap_Mod, linfct = mcp(Handicap = "Dunnett"))
+summary(Handicap_Dunnett)
+confint(Handicap_Dunnett)
+```
+
+Notice that we are only looking at 4 comparisons instead of 10 since we are only comparing each group to the reference group.
+
+Here, there's no evidence that any of the groups have means that are different from the no handicap group (all $p$-values > 0.05, all confidence intervals contain 0).

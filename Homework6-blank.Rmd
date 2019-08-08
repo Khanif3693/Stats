@@ -1,0 +1,133 @@
+---
+title: "ST 411/511 Homework 6"
+output:
+  html_document:
+    df_print: paged
+  html_notebook: default
+  pdf_document: default
+  word_document: default
+date: "Summer 2018"
+subtitle: Due on Aug 13
+---
+
+## Instructions
+
+This assignment is due by 11:59 PM, Aug 13, 2018 on Canvas.
+
+**You should submit your assignment as a readable format (word, pdf, html), but you can choose to make it however you choose. If you have knitted this file, please also include for .Rmd file. If you have not used R Markdown, please also include your code as a separate .R file.**
+
+I have still included a template .Rmd file containing the problems that you can use to fill in your solutions should you choose this format.
+
+## Problems (25 points total)
+
+```{r include=FALSE}
+# Load libraries we need for the assignment
+library(ggplot2)
+library(Sleuth3)
+library(multcomp)
+```
+
+
+### Question 1
+
+#### a) (2 points) In comparing 10 groups, a researcher notices that the sample mean of group 7 is the largest and the sample mean of group 3 is the smallest. The researcher then decides to test the hypothesis that $\mu_7-\mu_3=0$. Why should a multiple comparison procedure be used even though there is only one comparison being made?
+
+Answer:The selection of the comparison can be make by looking at all the group means and therefore it is better to consider all the possible pairwise comparisons. And, hence researchers should use the multiple comparisons over the the one comparison.
+
+#### b) (2 points) When choosing coefficients for a contrast, does the choice of $\{C_1, C_2, \ldots, C_I\}$ give a different $t$-statistic than the choice of $\{4C_1, 4C_2, \ldots, 4C_I\}$? Explain why or why not.
+Answer:Multilpying a constant on with the Coefficient will not change the t-static values. However, it may change the values of $g$ and $SE(g)$. After multilpying a constant to the coefficient will multiply the value of $g$ and $SE(g)$ as well but while calculating the $t-static$ we will divide this two and their common multiplier will get cancel and result the same values as without multiplied coefficients.
+
+### Question 2 (Modified from *Sleuth* 6.17)
+
+The relative head length (RHL) is measured for adders (a type of snake) on the Swedish mainland and on groups of islands in the Baltic Sea. Relative head length is adjusted for overall body length, determined separately for males and females. The data are below and additionally you know that the pooled estimate of standard deviation of the RHL measurements was 11.72 based on 230 degrees of freedom.
+
+```{r}
+adder <- data.frame(Locality = c("Uppsala", "In-Fredeln", "Inre Hammnskar", "Norrpada",
+                                 "Karringboskar", "Angskar", "SvenskaHagarna"), 
+                    SampleSize = c(21, 34, 20, 25, 7, 82, 48), 
+                    meanRHL = c(-6.98, -4.24, -2.79, 2.22, 1.27, 1.88, 4.98))
+
+adder
+```
+
+Consider the question: "Is the average of the mean relative head lengths for snakes on the Swedish mainland equal to the average of the mean relative head lengths for snakes on islands in the Baltic Sea?" Uppsala is the mainland, and the other six localities refer to islands in the Baltic Sea.
+
+#### a) (2 points) Give the coefficients for the linear combination you would use to test this question, and state the null hypothesis you would be testing using statistical notation.
+Answer:We have scientific question as "Is the average of the mean relative head for snakes on the Swedish mainland (Uppsala) equal to the average of the mean relative head length for the snakes on the Baltic Sea(other six island)". 
+Let $C_1$ represents for the coefficient for the Uppsala and $C_2$,$C_3,C_4,C_5$and $C_6$ represents the coefficients for the other six island. 
+
+from the question we have 
+Null hypothesis as $H_0$=$C_1\mu_1+C_2\mu_2+C_3\mu_3+C_4\mu_4+C_5\mu_5+C_6\mu_6=0$
+So for the coefficiants for the $C_1$ can be 1
+and for the $C_2 $to$ C_6 =-1/6$
+or the values of $C_s$ can be anyother as I have entered for the problem (b)
+
+
+#### b) (3 points) What is the $t$-statistic for testing the hypothesis in part a)? Please include in your answer your computed values of $g$ and the standard error of $g$.
+Answer:
+We can calculate g = putting the values of mean and the coefficients on the values of the $C_s$.
+
+```{r}
+C<-c(6,rep(-1,6))
+C
+g<-sum(C*adder$meanRHL)
+g
+#given SD=11.72 for the df=230 so we have formula to get Sg
+sd<-11.72
+Stg<-sd*sqrt(sum(C^2/adder$SampleSize))
+Stg
+tstatic<-g/Stg
+tstatic
+
+```
+
+
+#### c) (2 points) Find the resulting $p$-value and state your conclusion.
+
+```{r}
+2*(1-pt(abs(tstatic), df=230))
+
+```
+from the p-value we will reject the null Hypothesis that the mean relative head lentgh of the  snakes from the Swedish mainland(Uppasala) is equal to the average of the mean relative head length of the snakes on the Baltic sea(other six island).
+### Question 3 (Modified from *Sleuth* 6.21)
+
+Reconsider the education and future income data from your last homework (data: `ex0525`). Find $p$-values and 95% confidence intervals for the difference in means for all pairs of education groups in the following ways:
+
+#### a) (2 points) Using the Tukey-Kramer procedure
+
+```{r}
+data(ex0525)
+mod<-lm(Income2005 ~ Educ, data=ex0525)
+tukey<-glht(mod, linfct=mcp(Educ="Tukey"))
+summary(tukey)
+confint(tukey)
+
+```
+
+#### b) (2 points) Without adjusting for multiple comparisons
+```{r}
+summary(tukey,test=adjusted("none"))
+confint(tukey,calpha=univariate_calpha())
+
+```
+
+#### c) (3 points) What do you notice by comparing these two methods? Discuss differences in which tests are significant, how wide the confidence intervals are, and which confidence intervals contain 0.
+Answer:from the test result above we can observe that the results of test (b) without adjusting is different than the result in (a). I have observed that all the null hypothesis in the test (b) are failed whereas in the test done in (a) two out of 10 test support the null hypothesis.Also test (a) Tukey , for case <12 and 12 AND >16 and 16 confidence interval contains 0 (ranges from negative lower to positive higer ends). Test in (b) are more significant
+
+#### d) (3 points) Use the Dunnett procedure to compare every other group to the group with 12 years of education. Look at both the $p$-values and confidence intervals. Which group means apparently differ from the mean for those with 12 years of education?
+
+```{r}
+# specify which category is the reference category and re-fit model
+ex0525$Educ <- relevel(ex0525$Educ, ref="12")
+edMod1 <- lm(Income2005 ~ Educ, data=ex0525)
+Dunnt<-glht(edMod1,linfct = mcp (Educ = "Dunnett"))
+summary(Dunnt)
+confint(Dunnt)
+
+#now you need to do the rest...
+```
+from the result obtained above we have observed that the mean of 12 years education group is different than all others except the group of <12 seems not different.
+#### e) (2 points) Taking all of these tests together, what general statements would you make about the relationship between Education and Income?
+
+Answer: From all the test performed above it seems that the  income of the people in the group of 12 and <12  and 16 and > 16  are not different whereas other groups  have different income than others.
+

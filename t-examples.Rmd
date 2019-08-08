@@ -1,0 +1,142 @@
+---
+title: "t-test Examples"
+output:
+  html_notebook: default
+  pdf_document: default
+---
+
+```{r include=FALSE}
+# Load packages
+library(Sleuth3)
+library(ggplot2)
+```
+
+## 2.21 from *The Statistical Sleuth*
+
+Do sparrow humerus lengths differ between survived and perished groups?
+
+We can use a two-sample $t$-test.
+
+Load the data, see the column names:
+
+```{r}
+data(ex0221)
+View(ex0221)
+names(ex0221)
+```
+
+Let's do some exploratory analysis:
+
+```{r}
+ggplot(ex0221, aes(x=Status, y=Humerus)) + geom_boxplot()
+```
+
+Let's test the null hypothesis that the two population means are the same, versus the two-sided alternative.
+
+By hand:
+
+```{r}
+# Mean, variance, and size of each sample
+meanperished <- mean(ex0221$Humerus[ex0221$Status=="Perished"])
+meansurvived <- mean(ex0221$Humerus[ex0221$Status=="Survived"])
+varperished <- var(ex0221$Humerus[ex0221$Status=="Perished"])
+varsurvived <- var(ex0221$Humerus[ex0221$Status=="Survived"])
+nperished <- length(which(ex0221$Status=="Perished"))
+nsurvived <- length(which(ex0221$Status=="Survived"))
+
+# Pooled variance
+sp2 <- ((nperished-1)*varperished + (nsurvived-1)*varsurvived)/(nperished+nsurvived-2)
+
+# Test statistic
+tstat <- (meanperished-meansurvived)/sqrt(sp2*(1/nperished + 1/nsurvived))
+tstat
+
+# P-value
+2*(1-pt(abs(tstat), df=nperished+nsurvived-2))
+```
+
+At an $\alpha=0.05$ significance level, we would fail to reject the null hypothesis.
+
+We can also see this if we were to calculate a critical value:
+
+```{r}
+qt(0.025, df=nperished+nsurvived-2)
+tstat
+```
+ Our test statistic is closer to 0 than our critical value.
+ 
+ Let's check our work using the `t.test` function:
+ 
+```{r}
+t.test(Humerus ~ Status, data=ex0221, alternative="two.sided", var.equal=TRUE)
+```
+ 
+We could also have specified the arguments in `t.test` differently:
+
+```{r}
+perished <- ex0221$Humerus[ex0221$Status=="Perished"]
+survived <- ex0221$Humerus[ex0221$Status=="Survived"]
+t.test(perished, survived, alternative="two.sided", var.equal=TRUE)
+```
+
+## Paired t-test
+
+To assess whether lab rats can finish mazes faster with practice, a study is set up with 15 rats. In a preliminary study, each rat is placed in a maze, and the time (in seconds) to get from start to finish is recorded. Each day for the next 30 days each rat is given one attempt at the same maze. On the last day, the time the rat takes to get from start to finish is recorded.
+
+```{r}
+# Enter data
+rats <- data.frame(rat=factor(rep(1:15, 2)), day=rep(c("Day1", "Day30"), each=15), mazetime=c(65, 46, 34, 75, 23, 100, 56, 48, 95, 43, 34, 65, 98, 47, 55, 44, 78, 45, 98, 34, 75, 43, 36, 43, 66, 33, 45, 24, 61, 31))
+View(rats)
+```
+
+Exploratory analysis:
+
+```{r}
+ggplot(rats, aes(x=day, y=mazetime)) + geom_boxplot()
+```
+
+This boxplot obscures that there are pairs of rats. THIS IS NOT AN APPROPRIATE GRAPH FOR PAIRED DATA! We could consider something like:
+
+```{r}
+ggplot(rats, aes(x=day, y=mazetime, group=rat, color=rat)) + geom_point() + geom_line()
+```
+We could also consider creating a boxplot of the differneces:
+
+This is a PAIRED test because the Day1 and Day30 measurements are taken on the same rats. We will define $D_i=Day30-Day1$ (so $D_i$ will have a negative value for rat $i$ if rat $i$ improved over the 30 days).
+
+Let's test the null $H_0: \mu_D=0$ versus the one-sided lesser alternative $H_A: \mu_D<0$.
+
+Let's do the hypothesis test by hand:
+
+```{r}
+difs <- rats$mazetime[16:30] - rats$mazetime[1:15]
+
+tstat <- mean(difs)/sqrt(var(difs)/15)
+
+pt(tstat, df=14)
+```
+
+We would fail to reject the null hypothesis at the $\alpha=0.05$ significance level. We can also see this by finding the critical value for the test:
+
+```{r}
+qt(0.05, df=14)
+tstat
+```
+
+Let's check using `t.test` to make sure we did everything correctly.
+
+```{r}
+t.test(difs, alternative="less")
+```
+
+We could have also used `t.test` on the original data (before calculating the differences):
+
+```{r}
+t.test(mazetime ~ day, data=rats, alternative="less", paired=TRUE)
+```
+
+Note that we have to be careful: by default R is doing Day1-Day30, which is the opposite direction than what we want, so we actually need to specify `alternative=greater` to get the same result as we got by hand:
+
+```{r}
+t.test(mazetime ~ day, data=rats, alternative="greater", paired=TRUE)
+```
